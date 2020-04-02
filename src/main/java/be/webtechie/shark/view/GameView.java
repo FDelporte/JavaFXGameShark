@@ -1,15 +1,20 @@
 package be.webtechie.shark.view;
 
 import be.webtechie.shark.elements.BitingShark;
+import be.webtechie.shark.elements.FishSkin;
+import be.webtechie.shark.elements.MovingFish;
+import be.webtechie.shark.util.RandomHelper;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
-import javafx.geometry.Orientation;
-import javafx.scene.control.Slider;
+import javafx.geometry.Pos;
+import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.util.Duration;
 
@@ -21,65 +26,116 @@ public class GameView extends Pane {
      * Canvas animation https://mkyong.com/javafx/javafx-animated-ball-example/
      */
 
+    private static final int MAX_FISH = 5;
+    private static final int MILLES_BETWEEN_FISH = 1000;
+
     private final int width;
     private final int height;
 
-    private final Random random = new Random();
+    private final BitingShark shark;
+    private final List<MovingFish> fishList;
+    private final Label lbl;
+    private final Timeline timeline;
 
-    private final List<MovingDot> dots;
-    private final Slider slider;
+    private long timestampPreviousFish = System.currentTimeMillis();
+
+    private int lives = 5;
+    private int points = 0;
 
     public GameView(int width, int height) {
         this.width = width;
         this.height = height;
-        this.dots = new ArrayList<>();
-        this.slider = new Slider(10, 500, 50);
-        this.slider.setMinWidth(250);
-        this.slider.setOrientation(Orientation.HORIZONTAL);
-        this.slider.setBlockIncrement(10);
-        this.slider.setMajorTickUnit(10);
-        this.slider.setMinorTickCount(0);
-        this.slider.setShowTickLabels(true);
-        this.slider.setSnapToTicks(true);
-        this.slider.valueProperty().addListener((observable, oldValue, newValue) -> this.createUI());
+        this.setStyle("-fx-background-color: lightblue;");
 
-        this.createUI();
+        this.shark = new BitingShark(width, height);
+        this.getChildren().add(this.shark);
 
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(20), this::timelineEvent));
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
+        this.lbl = new Label();
+        this.lbl.setStyle("-fx-font-size: 18px; -fx-text-fill: darkblue;");
+        this.lbl.setLayoutX(10);
+        this.lbl.setLayoutY(10);
+        this.getChildren().add(this.lbl);
+
+        this.fishList = new ArrayList<>();
+
+        this.timeline = new Timeline(new KeyFrame(Duration.millis(20), this::timelineEvent));
+        this.timeline.setCycleCount(Timeline.INDEFINITE);
+        this.timeline.play();
     }
 
-    private void createUI() {
-        this.getChildren().clear();
-        this.getChildren().removeAll();
-        this.dots.clear();
-        for (int i = 0; i < Math.round(this.slider.getValue()); i++) {
-            MovingDot dot = new MovingDot(
-                    getRandomNumberInRange(1, 3),
-                    getRandomNumberInRange(1, 3),
-                    getRandomNumberInRange(0, width),
-                    getRandomNumberInRange(0, height));
-            this.dots.add(dot);
-            this.getChildren().add(dot);
+    public void handleKeyPress(KeyEvent e) {
+        if (this.lives <= 0) {
+            return;
         }
 
-        this.getChildren().add(new BitingShark());
+        if (e.getCode() == KeyCode.LEFT) {
+            this.shark.moveLeft();
+        } else  if (e.getCode() == KeyCode.RIGHT) {
+            this.shark.moveRight();
+        }
     }
 
-    private int getRandomNumberInRange(int min, int max) {
-        if (min >= max) {
-            throw new IllegalArgumentException("max must be greater than min");
-        }
+    private MovingFish createFish() {
+        this.timestampPreviousFish = System.currentTimeMillis();
 
-        return this.random.nextInt((max - min) + 1) + min;
+        MovingFish fish = new MovingFish(
+                FishSkin.getRandom(),
+                RandomHelper.getRandomNumberInRange(1, 5),
+                RandomHelper.getRandomNumberInRange(1, 5),
+                RandomHelper.getRandomNumberInRange(20, width - 20));
+        this.fishList.add(fish);
+        this.getChildren().add(fish);
+        return fish;
     }
 
     private void timelineEvent(ActionEvent e) {
         Bounds bounds = this.getBoundsInLocal();
+        boolean anyTouchedShark = false;
+        boolean anyReachedBottom = false;
 
-        for (MovingDot dot : this.dots) {
-            dot.move(bounds);
+        if (this.fishList.size() < MAX_FISH
+                && (System.currentTimeMillis() - this.timestampPreviousFish) > MILLES_BETWEEN_FISH) {
+            this.createFish();
         }
+
+        for (Iterator<MovingFish> iterator = this.fishList.iterator(); iterator.hasNext();) {
+            MovingFish fish = iterator.next();
+            boolean touchesShark = checkTouchedShark(fish);
+            boolean reachedBottom = fish.moveElementDown(bounds);
+            if (touchesShark) {
+                anyTouchedShark = true;
+                this.points++;
+            }
+            if (reachedBottom) {
+                anyReachedBottom = true;
+                this.lives--;
+            }
+            if (touchesShark || reachedBottom) {
+                this.getChildren().remove(fish);
+                iterator.remove();
+            }
+        }
+
+        if (anyReachedBottom) {
+            this.setStyle("-fx-background-color: red;");
+        } else if (anyTouchedShark) {
+            this.setStyle("-fx-background-color: green;");
+        }
+
+        this.lbl.setText("Lives: " + this.lives + " - Fish eaten: " + this.points);
+
+        if (this.lives <= 0) {
+            Label gameOver = new Label("Game over");
+            gameOver.setAlignment(Pos.CENTER);
+            gameOver.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: darkred; -fx-stroke: black; -fx-stroke-width: 2px;");
+            gameOver.setPrefWidth(this.width);
+            gameOver.setLayoutY(this.height / 3);
+            this.getChildren().add(gameOver);
+            this.timeline.stop();
+        }
+    }
+
+    private boolean checkTouchedShark(MovingFish fish) {
+        return fish.getBoundsInParent().intersects(this.shark.getBoundsInParent());
     }
 }

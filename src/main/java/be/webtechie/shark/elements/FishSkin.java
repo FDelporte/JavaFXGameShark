@@ -7,34 +7,22 @@ import java.util.Random;
 import javafx.scene.image.Image;
 
 public enum FishSkin {
-    BLUE(45,115, Arrays.asList(
-            new Image(BitingShark.class.getResource("/fish/blue1.png").toString()),
-            new Image(BitingShark.class.getResource("/fish/blue2.png").toString()),
-            new Image(BitingShark.class.getResource("/fish/blue3.png").toString()))),
-    RED(30, 75, Arrays.asList(
-            new Image(BitingShark.class.getResource("/fish/red1.png").toString()))),
-    GREY(45, 95, Arrays.asList(
-            new Image(BitingShark.class.getResource("/fish/grey1.png").toString()))),
-    DARK_GREY(43, 90, Arrays.asList(
-            new Image(BitingShark.class.getResource("/fish/darkgrey1.png").toString()))),
-    ;
+    BLUE(Arrays.asList(
+            new Image(FishSkin.class.getResource("/fish/blue1.png").toString(), 22, 55, true, true),
+            new Image(FishSkin.class.getResource("/fish/blue2.png").toString(), 22, 55, true, true),
+            new Image(FishSkin.class.getResource("/fish/blue3.png").toString(), 22, 55, true, true))),
+    RED(Arrays.asList(
+            new Image(FishSkin.class.getResource("/fish/red1.png").toString(), 20, 40, true, true))),
+    GREY(Arrays.asList(
+            new Image(FishSkin.class.getResource("/fish/grey1.png").toString(), 22, 45, true, true))),
+    DARK_GREY(Arrays.asList(
+            new Image(FishSkin.class.getResource("/fish/darkgrey1.png").toString(), 20, 45, true, true)));
 
-    private final int width;
-    private final int height;
     private final List<Image> images;
 
-    FishSkin(int width, int height, List<Image> images) {
-        this.width = width;
-        this.height = height;
+    FishSkin(List<Image> images) {
+
         this.images = images;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public List<Image> getImages() {

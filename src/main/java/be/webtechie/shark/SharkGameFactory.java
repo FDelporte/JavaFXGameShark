@@ -4,11 +4,13 @@ import static com.almasb.fxgl.dsl.FXGL.entityBuilder;
 import static com.almasb.fxgl.dsl.FXGL.getAppWidth;
 
 import be.webtechie.shark.elements.FishSkin;
+import be.webtechie.shark.elements.SharkSkin;
 import be.webtechie.shark.util.RandomHelper;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.EntityFactory;
 import com.almasb.fxgl.entity.SpawnData;
 import com.almasb.fxgl.entity.Spawns;
+import com.almasb.fxgl.entity.components.CollidableComponent;
 import com.almasb.fxgl.texture.AnimatedTexture;
 import com.almasb.fxgl.texture.AnimationChannel;
 import javafx.scene.paint.Color;
@@ -29,11 +31,14 @@ public class SharkGameFactory implements EntityFactory {
 
     @Spawns("shark")
     public Entity newShark(SpawnData data) {
+        SharkSkin skin = SharkSkin.SHARK;
+        var channel = new AnimationChannel(skin.getImages(), Duration.millis(250));
+
         return entityBuilder()
                 .from(data)
                 .type(EntityType.SHARK)
-                .viewWithBBox(new Rectangle(30, 30, Color.BLUE))
-                .collidable()
+                .viewWithBBox(new AnimatedTexture(channel).loop())
+                .with(new CollidableComponent(true))
                 .build();
     }
 
@@ -46,8 +51,9 @@ public class SharkGameFactory implements EntityFactory {
         return entityBuilder()
                 .from(data)
                 .type(EntityType.FISH)
-                .view(new AnimatedTexture(channel).loop())
-                .at(RandomHelper.getRandomNumberInRange(0, getAppWidth()), 0)
+                .viewWithBBox(new AnimatedTexture(channel).loop())
+                .at(RandomHelper.getRandomNumberInRange(5, getAppWidth() - 15), 0)
+                .with(new CollidableComponent(true))
                 .build();
     }
 }

@@ -16,9 +16,12 @@ import static com.almasb.fxgl.dsl.FXGLForKtKt.getUIFactory;
 import be.webtechie.shark.SharkGameFactory.EntityType;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
+import com.almasb.fxgl.dsl.FXGL;
 import com.almasb.fxgl.entity.Entity;
 import com.almasb.fxgl.entity.EntityFactory;
 import java.util.Map;
+
+import com.almasb.fxgl.physics.CollisionHandler;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -57,6 +60,7 @@ public class SharkGameApp extends GameApplication {
     @Override
     protected void initSettings(GameSettings settings) {
         settings.setTitle("Viks Shark Game");
+        settings.setWidth(300);
     }
 
     /**
@@ -100,8 +104,16 @@ public class SharkGameApp extends GameApplication {
      */
     @Override
     protected void initInput() {
-        onKey(KeyCode.LEFT, () -> this.player.translateX(-5));
-        onKey(KeyCode.RIGHT, () -> this.player.translateX(5));
+        onKey(KeyCode.LEFT, () -> {
+            if (this.player.getX() > 2) {
+                this.player.translateX(-5);
+            }
+        });
+        onKey(KeyCode.RIGHT, () -> {
+            if (this.player.getX() < getAppWidth() - 25) {
+                this.player.translateX(5);
+            }
+        });
     }
 
     /**
@@ -112,7 +124,7 @@ public class SharkGameApp extends GameApplication {
         getGameWorld().addEntityFactory(this.sharkGameFactory);
 
         // Add the player
-        this.player = spawn("shark", getAppWidth() / 2 - 15, getAppHeight() - 15);
+        this.player = spawn("shark", getAppWidth() / 2 - 15, getAppHeight() - 30);
 
         // Add a new enemy every second
         run(() -> spawn("fish", getAppWidth() / 2, getAppHeight() / 2), Duration.seconds(1.0));
@@ -124,7 +136,7 @@ public class SharkGameApp extends GameApplication {
         for (Entity entity : getGameWorld().getEntitiesByType(EntityType.FISH)) {
             entity.translateY(150 * tpf);
 
-            if (entity.getY() >= getAppHeight()) {
+            if (entity.getY() > getAppHeight()) {
                 getGameState().intProperty("lives").set(getGameState().intProperty("lives").get() - 1);
                 entity.removeFromWorld();
 
@@ -142,9 +154,13 @@ public class SharkGameApp extends GameApplication {
      */
     @Override
     protected void initPhysics() {
-        onCollisionBegin(EntityType.FISH, EntityType.SHARK, (fish, shark) -> {
-            fish.removeFromWorld();
-            getGameState().intProperty("score").set(getGameState().intProperty("score").get() + 1);
+        FXGL.getPhysicsWorld().addCollisionHandler(new CollisionHandler(EntityType.FISH, EntityType.SHARK) {
+            // order of types is the same as passed into the constructor
+            @Override
+            protected void onCollisionBegin(Entity fish, Entity shark) {
+                fish.removeFromWorld();
+                getGameState().intProperty("score").set(getGameState().intProperty("score").get() + 1);
+            }
         });
     }
 }
